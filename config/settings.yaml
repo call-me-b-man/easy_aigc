@@ -1,0 +1,36 @@
+providers:
+  siliconflow:
+    api_key: sk-icqiadzxkolqmbngrwpxamxdhtrgroxwcnmyitsbzbszofve
+    base_url: https://api.siliconflow.cn/v1
+    enabled: true
+  evolink:
+    api_key: ''
+    base_url: https://api.evolink.ai/v1
+    enabled: true
+default_provider: siliconflow
+subject_extraction_model: Qwen/Qwen-Image-Edit-2509
+multiview_generation_model: Qwen/Qwen-Image-Edit-2509
+prompts:
+  subject_extraction: Extract the main subject from this image. Remove the background
+    completely. Keep only the primary {subject_type} on a clean white background.
+    Maintain all original details and proportions.
+  multiview:
+    front: Front view of {subject_description}. Maintain exact same appearance, colors,
+      textures and details as the reference. Clean white background. {extra_requirements}
+    left_side: Left side view of {subject_description}. Maintain exact same appearance,
+      colors, textures and details as the reference. Clean white background. {extra_requirements}
+    right_side: Right side view of {subject_description}. Maintain exact same appearance,
+      colors, textures and details as the reference. Clean white background. {extra_requirements}
+    back: Back view of {subject_description}. Maintain exact same appearance, colors,
+      textures and details as the reference. Clean white background. {extra_requirements}
+    top: Top-down view of {subject_description}. Maintain exact same appearance, colors,
+      textures and details as the reference. Clean white background. {extra_requirements}
+output_base_path: ./output
+default_views:
+- front
+- left_side
+- right_side
+- back
+- top
+num_inference_steps: 50
+cfg_scale: 4.0
