@@ -3,435 +3,30 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Easy AIGC — 图片主体提取与多视角生成</title>
+    <title>Easy AIGC — AI 图片生成与模特管理</title>
+    <meta name="description" content="AI 驱动的产品图片主体提取、多视角生成与模特资产管理工具">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <style>
-        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
-        :root {
-            --bg-primary: #0f0f14;
-            --bg-secondary: #1a1a24;
-            --bg-card: #1e1e2e;
-            --bg-input: #252536;
-            --border: #2e2e42;
-            --border-hover: #4a4a6a;
-            --text-primary: #e8e8f0;
-            --text-secondary: #9898b0;
-            --text-muted: #6868880;
-            --accent: #7c5cfc;
-            --accent-hover: #9078ff;
-            --accent-glow: rgba(124, 92, 252, 0.25);
-            --success: #34d399;
-            --error: #f87171;
-            --warning: #fbbf24;
-            --radius: 12px;
-            --radius-sm: 8px;
-        }
-
-        body {
-            font-family: 'Inter', -apple-system, sans-serif;
-            background: var(--bg-primary);
-            color: var(--text-primary);
-            min-height: 100vh;
-            line-height: 1.6;
-        }
-
-        /* Header */
-        .header {
-            background: linear-gradient(135deg, var(--bg-secondary) 0%, #12121c 100%);
-            border-bottom: 1px solid var(--border);
-            padding: 20px 32px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-        }
-        .header h1 {
-            font-size: 22px;
-            font-weight: 700;
-            background: linear-gradient(135deg, #a78bfa, #7c5cfc, #60a5fa);
-            -webkit-background-clip: text;
-            background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }
-        .header .status {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            font-size: 13px;
-            color: var(--text-secondary);
-        }
-        .status-dot {
-            width: 8px; height: 8px;
-            border-radius: 50%;
-            background: var(--success);
-            animation: pulse 2s infinite;
-        }
-        @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.4; }
-        }
-
-        /* Layout */
-        .container {
-            max-width: 1340px;
-            margin: 0 auto;
-            padding: 24px;
-            display: grid;
-            grid-template-columns: 380px 1fr;
-            gap: 24px;
-        }
-
-        /* Card */
-        .card {
-            background: var(--bg-card);
-            border: 1px solid var(--border);
-            border-radius: var(--radius);
-            padding: 24px;
-            transition: border-color 0.2s;
-        }
-        .card:hover { border-color: var(--border-hover); }
-        .card-title {
-            font-size: 15px;
-            font-weight: 600;
-            margin-bottom: 20px;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-        .card-title .icon {
-            width: 28px; height: 28px;
-            border-radius: var(--radius-sm);
-            display: flex; align-items: center; justify-content: center;
-            font-size: 14px;
-        }
-
-        /* Left Panel */
-        .left-panel { display: flex; flex-direction: column; gap: 20px; }
-
-        /* Upload Area */
-        .upload-area {
-            border: 2px dashed var(--border);
-            border-radius: var(--radius);
-            padding: 32px 20px;
-            text-align: center;
-            cursor: pointer;
-            transition: all 0.3s;
-            position: relative;
-            overflow: hidden;
-        }
-        .upload-area:hover, .upload-area.dragover {
-            border-color: var(--accent);
-            background: var(--accent-glow);
-        }
-        .upload-area .icon-large { font-size: 36px; margin-bottom: 12px; }
-        .upload-area p { font-size: 13px; color: var(--text-secondary); }
-        .upload-area input { display: none; }
-        .preview-img {
-            max-width: 100%; max-height: 200px;
-            border-radius: var(--radius-sm);
-            object-fit: contain;
-        }
-
-        /* Form controls */
-        label {
-            display: block;
-            font-size: 12px;
-            font-weight: 500;
-            color: var(--text-secondary);
-            margin-bottom: 6px;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-        select, input[type="text"], input[type="password"], textarea {
-            width: 100%;
-            padding: 10px 14px;
-            background: var(--bg-input);
-            border: 1px solid var(--border);
-            border-radius: var(--radius-sm);
-            color: var(--text-primary);
-            font-size: 14px;
-            font-family: inherit;
-            outline: none;
-            transition: border-color 0.2s;
-        }
-        select:focus, input[type="text"]:focus, input[type="password"]:focus, textarea:focus {
-            border-color: var(--accent);
-        }
-        textarea { resize: vertical; min-height: 60px; }
-        .form-group { margin-bottom: 16px; }
-        .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-
-        /* Key Input */
-        .key-input-group {
-            display: flex; gap: 8px; align-items: center;
-        }
-        .key-input-group input { flex: 1; }
-        .btn-icon {
-            width: 38px; height: 38px; min-width: 38px;
-            padding: 0; border: 1px solid var(--border);
-            background: var(--bg-input); border-radius: var(--radius-sm);
-            color: var(--text-secondary); cursor: pointer;
-            display: flex; align-items: center; justify-content: center;
-            font-size: 16px; transition: all 0.2s;
-        }
-        .btn-icon:hover { border-color: var(--border-hover); color: var(--text-primary); }
-        .btn-save-key {
-            padding: 8px 16px; border: none;
-            background: linear-gradient(135deg, #34d399, #10b981);
-            border-radius: var(--radius-sm); color: #fff;
-            font-size: 12px; font-weight: 600; font-family: inherit;
-            cursor: pointer; transition: all 0.2s; white-space: nowrap;
-        }
-        .btn-save-key:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(52,211,153,0.3); }
-        .btn-save-key:disabled { opacity: 0.5; cursor: not-allowed; transform: none; box-shadow: none; }
-        .key-status {
-            font-size: 11px; margin-top: 4px;
-        }
-        .key-status.configured { color: var(--success); }
-        .key-status.missing { color: var(--text-muted); }
-
-        /* Checkbox Group */
-        .checkbox-group {
-            display: flex; flex-wrap: wrap; gap: 8px;
-        }
-        .checkbox-tag {
-            padding: 6px 14px;
-            background: var(--bg-input);
-            border: 1px solid var(--border);
-            border-radius: 20px;
-            font-size: 12px;
-            cursor: pointer;
-            transition: all 0.2s;
-            user-select: none;
-        }
-        .checkbox-tag.active {
-            background: var(--accent-glow);
-            border-color: var(--accent);
-            color: var(--accent-hover);
-        }
-
-        /* Buttons */
-        .btn {
-            width: 100%;
-            padding: 12px 20px;
-            border: none;
-            border-radius: var(--radius-sm);
-            font-size: 14px;
-            font-weight: 600;
-            font-family: inherit;
-            cursor: pointer;
-            transition: all 0.2s;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-        }
-        .btn-primary {
-            background: linear-gradient(135deg, #7c5cfc, #6046e0);
-            color: #fff;
-        }
-        .btn-primary:hover {
-            background: linear-gradient(135deg, #9078ff, #7c5cfc);
-            box-shadow: 0 4px 20px var(--accent-glow);
-            transform: translateY(-1px);
-        }
-        .btn-primary:disabled {
-            opacity: 0.5; cursor: not-allowed; transform: none; box-shadow: none;
-        }
-        .btn-secondary {
-            background: var(--bg-input);
-            color: var(--text-secondary);
-            border: 1px solid var(--border);
-        }
-        .btn-secondary:hover { border-color: var(--border-hover); color: var(--text-primary); }
-
-        /* Action buttons row */
-        .action-row { display: flex; gap: 10px; margin-top: 8px; }
-        .action-row .btn { flex: 1; }
-
-        /* Collapsible */
-        .collapsible-header {
-            display: flex; justify-content: space-between; align-items: center;
-            cursor: pointer; padding: 4px 0;
-        }
-        .collapsible-header .arrow { transition: transform 0.2s; font-size: 12px; }
-        .collapsible-header.open .arrow { transform: rotate(180deg); }
-        .collapsible-body { display: none; margin-top: 16px; }
-        .collapsible-body.open { display: block; }
-
-        /* Right Panel */
-        .right-panel { display: flex; flex-direction: column; gap: 20px; }
-
-        /* Results Grid */
-        .results-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-            gap: 16px;
-        }
-        .result-card {
-            background: var(--bg-input);
-            border: 1px solid var(--border);
-            border-radius: var(--radius);
-            overflow: hidden;
-            transition: all 0.3s;
-        }
-        .result-card:hover {
-            border-color: var(--accent);
-            transform: translateY(-2px);
-            box-shadow: 0 8px 24px rgba(0,0,0,0.3);
-        }
-        .result-card img {
-            width: 100%;
-            aspect-ratio: 1;
-            object-fit: cover;
-            background: #131320;
-        }
-        .result-card .info {
-            padding: 12px;
-        }
-        .result-card .info h4 {
-            font-size: 13px;
-            font-weight: 600;
-            margin-bottom: 4px;
-        }
-        .result-card .info p {
-            font-size: 11px;
-            color: var(--text-secondary);
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
-        }
-
-        /* Badge */
-        .badge {
-            display: inline-block;
-            padding: 2px 8px;
-            border-radius: 10px;
-            font-size: 10px;
-            font-weight: 600;
-            text-transform: uppercase;
-        }
-        .badge-success { background: rgba(52,211,153,0.15); color: var(--success); }
-        .badge-error { background: rgba(248,113,113,0.15); color: var(--error); }
-        .badge-pending { background: rgba(251,191,36,0.15); color: var(--warning); }
-
-        /* Log / Status Bar */
-        .log-area {
-            background: var(--bg-input);
-            border: 1px solid var(--border);
-            border-radius: var(--radius-sm);
-            padding: 14px;
-            font-size: 12px;
-            font-family: 'Consolas', 'Courier New', monospace;
-            color: var(--text-secondary);
-            max-height: 160px;
-            overflow-y: auto;
-            line-height: 1.8;
-        }
-        .log-area .log-line { display: flex; gap: 8px; }
-        .log-area .log-time { color: var(--text-muted); min-width: 70px; }
-        .log-area .log-success { color: var(--success); }
-        .log-area .log-error { color: var(--error); }
-        .log-area .log-info { color: var(--accent-hover); }
-
-        /* Empty State */
-        .empty-state {
-            text-align: center;
-            padding: 60px 20px;
-            color: var(--text-secondary);
-        }
-        .empty-state .icon-huge { font-size: 48px; margin-bottom: 16px; opacity: 0.5; }
-        .empty-state p { font-size: 14px; }
-
-        /* Spinner */
-        .spinner {
-            width: 18px; height: 18px;
-            border: 2px solid rgba(255,255,255,0.2);
-            border-top-color: #fff;
-            border-radius: 50%;
-            animation: spin 0.6s linear infinite;
-        }
-        @keyframes spin { to { transform: rotate(360deg); } }
-
-        /* Toast */
-        .toast-container {
-            position: fixed; top: 20px; right: 20px; z-index: 1000;
-            display: flex; flex-direction: column; gap: 8px;
-        }
-        .toast {
-            padding: 12px 20px;
-            border-radius: var(--radius-sm);
-            font-size: 13px;
-            animation: slideIn 0.3s ease;
-            min-width: 260px;
-        }
-        .toast-success { background: rgba(52,211,153,0.15); border: 1px solid var(--success); color: var(--success); }
-        .toast-error { background: rgba(248,113,113,0.15); border: 1px solid var(--error); color: var(--error); }
-        @keyframes slideIn { from { transform: translateX(100%); opacity:0; } to { transform: translateX(0); opacity:1; } }
-
-        /* History */
-        .history-list {
-            display: flex; flex-direction: column; gap: 8px;
-            max-height: 320px; overflow-y: auto;
-        }
-        .history-item {
-            display: flex; align-items: center; gap: 12px;
-            padding: 10px 12px;
-            background: var(--bg-input);
-            border: 1px solid var(--border);
-            border-radius: var(--radius-sm);
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-        .history-item:hover, .history-item.active {
-            border-color: var(--accent);
-            background: var(--accent-glow);
-        }
-        .history-item .thumb {
-            width: 44px; height: 44px; min-width: 44px;
-            border-radius: 6px;
-            object-fit: cover;
-            background: var(--bg-secondary);
-        }
-        .history-item .meta {
-            flex: 1; min-width: 0;
-        }
-        .history-item .meta h5 {
-            font-size: 12px; font-weight: 600;
-            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-        }
-        .history-item .meta p {
-            font-size: 11px; color: var(--text-secondary);
-            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-        }
-        .history-images {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-            gap: 10px; margin-top: 16px;
-        }
-        .history-images img {
-            width: 100%; aspect-ratio: 1;
-            object-fit: contain; background: #131320;
-            border-radius: var(--radius-sm);
-            border: 1px solid var(--border);
-            cursor: pointer; transition: all 0.2s;
-        }
-        .history-images img:hover {
-            border-color: var(--accent);
-            transform: scale(1.02);
-        }
-
-        /* Responsive */
-        @media (max-width: 860px) {
-            .container { grid-template-columns: 1fr; }
-        }
-    </style>
+    <link rel="stylesheet" href="/static/css/variables.css?v=2">
+    <link rel="stylesheet" href="/static/css/base.css?v=2">
+    <link rel="stylesheet" href="/static/css/components.css?v=2">
+    <link rel="stylesheet" href="/static/css/generation.css?v=2">
+    <link rel="stylesheet" href="/static/css/models.css?v=2">
 </head>
 <body>
-    <!-- Header -->
+
+    <!-- ==================== Header ==================== -->
     <header class="header">
         <h1>✦ Easy AIGC</h1>
+        <nav class="tab-nav">
+            <button class="tab-btn active" data-tab="generation" onclick="window.__switchTab('generation')">
+                🎨 图片生成
+            </button>
+            <button class="tab-btn" data-tab="models" onclick="window.__switchTab('models')">
+                👤 模特库
+            </button>
+        </nav>
+        <button class="btn-settings" onclick="window.__openSettings()" title="设置">⚙️</button>
         <div class="status">
             <div class="status-dot" id="statusDot"></div>
             <span id="statusText">已连接</span>
@@ -440,39 +35,11 @@
 
     <div class="toast-container" id="toasts"></div>
 
-    <div class="container">
+    <!-- ==================== TAB: 图片生成 (首页) ==================== -->
+    <div class="container tab-page active" id="tab-generation">
+
         <!-- Left Panel -->
         <div class="left-panel">
-            <!-- API Key Config -->
-            <div class="card">
-                <div class="collapsible-header open" id="keyToggle">
-                    <div class="card-title" style="margin-bottom:0;">
-                        <div class="icon" style="background:rgba(248,113,113,0.12);color:var(--error);">🔑</div>
-                        API Key 配置
-                    </div>
-                    <span class="arrow">▼</span>
-                </div>
-                <div class="collapsible-body open" id="keyBody">
-                    <div class="form-group">
-                        <label>SiliconFlow API Key</label>
-                        <div class="key-input-group">
-                            <input type="password" id="sfApiKey" placeholder="sk-...">
-                            <button class="btn-icon" onclick="toggleKeyVis('sfApiKey')" title="显示/隐藏">👁</button>
-                        </div>
-                        <div class="key-status" id="sfKeyStatus"></div>
-                    </div>
-                    <div class="form-group">
-                        <label>Evolink API Key</label>
-                        <div class="key-input-group">
-                            <input type="password" id="evApiKey" placeholder="sk-...">
-                            <button class="btn-icon" onclick="toggleKeyVis('evApiKey')" title="显示/隐藏">👁</button>
-                        </div>
-                        <div class="key-status" id="evKeyStatus"></div>
-                    </div>
-                    <button class="btn-save-key" id="btnSaveKeys" onclick="saveApiKeys()" style="width:100%;">💾 保存 API Key</button>
-                </div>
-            </div>
-
             <!-- Upload -->
             <div class="card">
                 <div class="card-title">
@@ -620,497 +187,254 @@
 
     </div>
 
-    <script>
-        const API_BASE = window.location.origin;
+    <!-- ==================== TAB: 模特库 ==================== -->
+    <div class="container tab-page" id="tab-models">
 
-        // ===== DOM =====
-        const $ = (sel) => document.querySelector(sel);
-        const uploadArea = $('#uploadArea');
-        const fileInput = $('#fileInput');
-        const previewImg = $('#previewImg');
-        const uploadPlaceholder = $('#uploadPlaceholder');
-        const btnExtract = $('#btnExtract');
-        const btnPipeline = $('#btnPipeline');
-        const providerSel = $('#provider');
-        const modelSel = $('#model');
-        const logArea = $('#logArea');
-        const viewsGroup = $('#viewsGroup');
-        const advToggle = $('#advToggle');
-        const advBody = $('#advBody');
+        <!-- Left Panel: Controls -->
+        <div class="left-panel">
 
-        let selectedFile = null;
-        let subjectImagePath = null;
+            <!-- Operation Mode Switcher -->
+            <div class="card">
+                <div class="card-title">
+                    <div class="icon" style="background:var(--accent-glow);color:var(--accent);">👤</div>
+                    模特操作
+                </div>
+                <div class="mode-tabs" id="modelModeTabs">
+                    <button class="mode-tab active" onclick="window.__switchModelMode('create', this)">✨ 创建模特</button>
+                    <button class="mode-tab" onclick="window.__switchModelMode('enrich', this)">🎯 追加参考</button>
+                </div>
+            </div>
 
-        // ===== Upload =====
-        uploadArea.addEventListener('click', () => fileInput.click());
-        fileInput.addEventListener('change', (e) => handleFile(e.target.files[0]));
-        uploadArea.addEventListener('dragover', (e) => { e.preventDefault(); uploadArea.classList.add('dragover'); });
-        uploadArea.addEventListener('dragleave', () => uploadArea.classList.remove('dragover'));
-        uploadArea.addEventListener('drop', (e) => { e.preventDefault(); uploadArea.classList.remove('dragover'); handleFile(e.dataTransfer.files[0]); });
+            <!-- Create Mode: Text -->
+            <div id="modelModeCreate">
+                <div class="card">
+                    <div class="card-title">
+                        <div class="icon" style="background:rgba(52,211,153,0.12);color:var(--success);">📝</div>
+                        创建方式
+                    </div>
+                    <div class="mode-tabs" style="margin-bottom:16px;">
+                        <button class="mode-tab active" onclick="window.__switchCreateMode('text', this)">📝 文字描述</button>
+                        <button class="mode-tab" onclick="window.__switchCreateMode('image', this)">📷 上传图片</button>
+                    </div>
 
-        function handleFile(file) {
-            if (!file || !file.type.startsWith('image/')) return;
-            selectedFile = file;
-            const reader = new FileReader();
-            reader.onload = (e) => {
-                previewImg.src = e.target.result;
-                previewImg.style.display = 'block';
-                uploadPlaceholder.style.display = 'none';
-                btnExtract.disabled = false;
-                btnPipeline.disabled = false;
-                log('info', `已选择图片: ${file.name} (${(file.size/1024).toFixed(1)} KB)`);
-            };
-            reader.readAsDataURL(file);
-        }
+                    <!-- Text Create -->
+                    <div id="createModeText">
+                        <div class="form-group">
+                            <label>模特名称 *</label>
+                            <input type="text" id="cmName" placeholder="如: 都市时尚女模">
+                        </div>
+                        <div class="form-group">
+                            <label>外观描述 (用于文生图)</label>
+                            <textarea id="cmDescription" rows="3" placeholder="如: 25岁亚洲女性，黑色长发，身穿白色T恤和蓝色牛仔裤"></textarea>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>性别</label>
+                                <select id="cmGender">
+                                    <option value="female">女性</option>
+                                    <option value="male">男性</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>风格</label>
+                                <input type="text" id="cmStyle" placeholder="时尚写真" value="时尚写真">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label>标签 (逗号分隔)</label>
+                            <input type="text" id="cmTags" placeholder="如: 时尚, 都市, 年轻">
+                        </div>
+                    </div>
 
-        // ===== Collapsible =====
-        advToggle.addEventListener('click', () => {
-            advToggle.classList.toggle('open');
-            advBody.classList.toggle('open');
-        });
-
-        // ===== View Tags =====
-        viewsGroup.querySelectorAll('.checkbox-tag').forEach(tag => {
-            tag.addEventListener('click', () => tag.classList.toggle('active'));
-        });
-
-        function getSelectedViews() {
-            return [...viewsGroup.querySelectorAll('.checkbox-tag.active')].map(t => t.dataset.view);
-        }
-
-        // ===== Model List =====
-        providerSel.addEventListener('change', () => {
-            localStorage.setItem('aigc_provider', providerSel.value);
-            loadModels();
-        });
-        modelSel.addEventListener('change', () => {
-            localStorage.setItem('aigc_model', modelSel.value);
-        });
-
-        async function loadModels() {
-            try {
-                const res = await fetch(`${API_BASE}/api/v1/config/providers`);
-                const providers = await res.json();
-
-                // 恢复 provider 选择
-                const savedProvider = localStorage.getItem('aigc_provider');
-                if (savedProvider && !providerSel.value) {
-                    providerSel.value = savedProvider;
-                }
-
-                modelSel.innerHTML = '<option value="">默认</option>';
-                const selected = providerSel.value;
-                for (const p of providers) {
-                    if (!selected || p.name === selected) {
-                        for (const m of p.models) {
-                            if (m.capabilities.includes('img2img') || m.capabilities.includes('edit')) {
-                                const opt = document.createElement('option');
-                                opt.value = m.id;
-                                opt.textContent = `${m.name} (${p.name})`;
-                                modelSel.appendChild(opt);
-                            }
-                        }
-                    }
-                }
-
-                // 恢复 model 选择
-                const savedModel = localStorage.getItem('aigc_model');
-                if (savedModel) {
-                    modelSel.value = savedModel;
-                }
-            } catch (e) {
-                log('error', '获取模型列表失败');
-            }
-        }
-
-        // ===== Build FormData =====
-        function buildFormData(mode) {
-            const fd = new FormData();
-            fd.append('image', selectedFile);
-
-            const provider = providerSel.value;
-            const model = modelSel.value;
-            const views = getSelectedViews();
-            const subjectDesc = $('#subjectDesc').value.trim();
-            const subjectType = $('#subjectType').value.trim();
-            const extraReq = $('#extraReq').value.trim();
-            const customPrompt = $('#customExtractPrompt').value.trim();
-
-            if (provider) fd.append(mode === 'pipeline' ? 'extract_provider' : 'provider', provider);
-            if (model) fd.append(mode === 'pipeline' ? 'extract_model' : 'model', model);
-
-            if (mode === 'pipeline') {
-                if (provider) fd.append('multiview_provider', provider);
-                if (model) fd.append('multiview_model', model);
-                if (customPrompt) fd.append('extract_custom_prompt', customPrompt);
-            } else if (mode === 'extract') {
-                if (customPrompt) fd.append('custom_prompt', customPrompt);
-            }
-
-            // Prompt variables
-            const vars = {};
-            if (subjectDesc) vars.subject_description = subjectDesc;
-            if (subjectType) vars.subject_type = subjectType;
-            if (extraReq) vars.extra_requirements = extraReq;
-
-            if (Object.keys(vars).length > 0) {
-                if (mode === 'pipeline') {
-                    fd.append('extract_prompt_variables', JSON.stringify(vars));
-                    fd.append('multiview_prompt_variables', JSON.stringify(vars));
-                } else if (mode === 'extract') {
-                    fd.append('prompt_variables', JSON.stringify(vars));
-                } else {
-                    fd.append('prompt_variables', JSON.stringify(vars));
-                }
-            }
-
-            if (views.length > 0 && (mode === 'pipeline' || mode === 'multiview')) {
-                fd.append('views', JSON.stringify(views));
-            }
-
-            return fd;
-        }
-
-        // ===== Extract Subject =====
-        btnExtract.addEventListener('click', async () => {
-            if (!selectedFile) return;
-            btnExtract.disabled = true;
-            btnExtract.innerHTML = '<div class="spinner"></div> 提取中...';
-            log('info', '开始主体提取...');
-
-            try {
-                const fd = buildFormData('extract');
-                const res = await fetch(`${API_BASE}/api/v1/generation/extract-subject`, {
-                    method: 'POST', body: fd
-                });
-                const data = await res.json();
-
-                if (data.status === 'completed' && data.subject_image_path) {
-                    subjectImagePath = data.subject_image_path;
-                    showSubjectResult(data);
-                    log('success', `主体提取成功: ${data.subject_image_path}`);
-                    toast('主体提取成功！', 'success');
-                    loadHistory();
-                } else {
-                    const errMsg = data.error || JSON.stringify(data);
-                    log('error', `提取失败: ${errMsg}`);
-                    toast('主体提取失败: ' + (data.error || '未知错误'), 'error');
-                }
-            } catch (e) {
-                log('error', `请求失败: ${e.message}`);
-                toast('请求失败: ' + e.message, 'error');
-            }
-            btnExtract.disabled = false;
-            btnExtract.innerHTML = '🎯 提取主体';
-        });
-
-        // ===== Pipeline =====
-        btnPipeline.addEventListener('click', async () => {
-            if (!selectedFile) return;
-            btnPipeline.disabled = true;
-            btnPipeline.innerHTML = '<div class="spinner"></div> 生成中...';
-            log('info', '开始完整流水线: 主体提取 + 多视角生成...');
-
-            try {
-                const fd = buildFormData('pipeline');
-                const res = await fetch(`${API_BASE}/api/v1/generation/pipeline`, {
-                    method: 'POST', body: fd
-                });
-                const data = await res.json();
-
-                if (data.subject_image_path) {
-                    subjectImagePath = data.subject_image_path;
-                    showSubjectResult(data);
-                    log('success', `主体提取完成`);
-                }
-
-                if (data.views && data.views.length > 0) {
-                    showMultiviewResult(data.views);
-                    const ok = data.views.filter(v => v.status === 'completed').length;
-                    log('success', `多视角生成完成: ${ok}/${data.views.length} 成功`);
-                    toast(`生成完成！${ok}/${data.views.length} 视角成功`, ok === data.views.length ? 'success' : 'error');
-                    loadHistory();
-                } else if (data.status === 'failed') {
-                    log('error', `流水线失败`);
-                    toast('生成失败', 'error');
-                }
-            } catch (e) {
-                log('error', `请求失败: ${e.message}`);
-                toast('请求失败: ' + e.message, 'error');
-            }
-            btnPipeline.disabled = false;
-            btnPipeline.innerHTML = '🚀 一键生成';
-        });
-
-        // ===== Display Results =====
-        function pathToUrl(localPath) {
-            if (!localPath) return '';
-            // 从本地路径提取 output/ 之后的部分，转为 URL
-            const normalized = localPath.replace(/\\/g, '/');
-            const idx = normalized.indexOf('/output/');
-            if (idx !== -1) {
-                return '/output/' + normalized.substring(idx + 8);
-            }
-            // fallback: 去掉 ./ 前缀
-            if (normalized.startsWith('./output/')) {
-                return '/output/' + normalized.substring(9);
-            }
-            if (normalized.startsWith('output/')) {
-                return '/output/' + normalized.substring(7);
-            }
-            return normalized;
-        }
-
-        function showSubjectResult(data) {
-            const container = $('#subjectResult');
-            const imgUrl = pathToUrl(data.subject_image_path);
-            container.innerHTML = `
-                <div class="results-grid">
-                    <div class="result-card">
-                        ${imgUrl
-                            ? `<img src="${imgUrl}" alt="主体提取结果" style="width:100%;aspect-ratio:1;object-fit:contain;background:#131320;cursor:pointer;" onclick="window.open('${imgUrl}','_blank')">`
-                            : `<div style="width:100%;aspect-ratio:1;background:var(--bg-secondary);display:flex;align-items:center;justify-content:center;font-size:48px;">🎯</div>`
-                        }
-                        <div class="info">
-                            <h4>提取主体 <span class="badge badge-success">完成</span></h4>
-                            <p title="${data.prompt_used || ''}">${data.provider_used} / ${data.model_used}</p>
+                    <!-- Image Create -->
+                    <div id="createModeImage" style="display:none;">
+                        <div class="upload-area" id="cmUploadArea">
+                            <div id="cmUploadPlaceholder">
+                                <div class="icon-large">📁</div>
+                                <p>拖拽模特图片到此处 或 <strong style="color:var(--accent);">点击选择</strong></p>
+                            </div>
+                            <img id="cmPreviewImg" class="preview-img" style="display:none;">
+                            <input type="file" id="cmFileInput" accept="image/*">
+                        </div>
+                        <div class="form-group" style="margin-top:16px;">
+                            <label>模特名称</label>
+                            <input type="text" id="cmImgName" placeholder="如: 都市时尚女模">
+                        </div>
+                        <div class="form-group">
+                            <label>描述</label>
+                            <input type="text" id="cmImgDesc" placeholder="简短描述">
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>性别</label>
+                                <select id="cmImgGender">
+                                    <option value="female">女性</option>
+                                    <option value="male">男性</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>标签 (逗号分隔)</label>
+                                <input type="text" id="cmImgTags" placeholder="时尚, 都市">
+                            </div>
                         </div>
                     </div>
                 </div>
-            `;
-        }
 
-        function showMultiviewResult(views) {
-            const container = $('#multiviewResult');
-            const viewLabels = { front:'正面', left_side:'左侧', right_side:'右侧', back:'背面', top:'俯视', three_quarter:'3/4视角' };
+                <!-- Create Action -->
+                <div class="card" style="padding:16px 24px;">
+                    <button class="btn btn-primary" id="btnCreateModel" onclick="window.__createModel()">
+                        🚀 开始生成模特
+                    </button>
+                </div>
+            </div>
 
-            let html = '<div class="results-grid">';
-            for (const v of views) {
-                const label = viewLabels[v.view_name] || v.view_name;
-                const ok = v.status === 'completed';
-                const badgeClass = ok ? 'badge-success' : 'badge-error';
-                const badgeText = ok ? '完成' : '失败';
-                const imgUrl = pathToUrl(v.image_path);
-                html += `
-                    <div class="result-card">
-                        ${imgUrl
-                            ? `<img src="${imgUrl}" alt="${label}" style="width:100%;aspect-ratio:1;object-fit:contain;background:#131320;cursor:pointer;" onclick="window.open('${imgUrl}','_blank')">`
-                            : `<div style="width:100%;aspect-ratio:1;background:var(--bg-secondary);display:flex;align-items:center;justify-content:center;font-size:36px;color:var(--text-muted);">${ok ? '🖼️' : '❌'}</div>`
-                        }
-                        <div class="info">
-                            <h4>${label} <span class="badge ${badgeClass}">${badgeText}</span></h4>
-                            <p title="${v.prompt_used || ''}">${v.prompt_used ? v.prompt_used.substring(0, 40) + '...' : ''}</p>
+            <!-- Enrich Mode -->
+            <div id="modelModeEnrich" style="display:none;">
+                <div class="card">
+                    <div class="card-title">
+                        <div class="icon" style="background:rgba(96,165,250,0.12);color:#60a5fa;">🎯</div>
+                        追加参考图
+                    </div>
+                    <p style="font-size:12px;color:var(--text-secondary);margin-bottom:16px;">
+                        选择一个右侧列表中的模特，然后选择要生成的视角/姿势
+                    </p>
+                    <div id="enrichCurrentModel" style="font-size:13px;margin-bottom:16px;padding:10px 14px;background:var(--bg-input);border-radius:var(--radius-sm);border:1px solid var(--border);color:var(--text-secondary);">
+                        ← 请先在右侧点击选择一个模特
+                    </div>
+                    <div class="form-group">
+                        <label>选择要生成的参考图</label>
+                        <div class="enrich-grid" id="enrichOptions">
+                            <div class="enrich-option" data-name="front" data-type="view" onclick="window.__toggleEnrichOption(this)">
+                                <h5>📐 正面</h5><p>正面全身照</p>
+                            </div>
+                            <div class="enrich-option" data-name="left_side" data-type="view" onclick="window.__toggleEnrichOption(this)">
+                                <h5>📐 左侧</h5><p>左侧全身照</p>
+                            </div>
+                            <div class="enrich-option" data-name="right_side" data-type="view" onclick="window.__toggleEnrichOption(this)">
+                                <h5>📐 右侧</h5><p>右侧全身照</p>
+                            </div>
+                            <div class="enrich-option" data-name="back" data-type="view" onclick="window.__toggleEnrichOption(this)">
+                                <h5>📐 背面</h5><p>背面全身照</p>
+                            </div>
+                            <div class="enrich-option" data-name="three_quarter" data-type="pose" onclick="window.__toggleEnrichOption(this)">
+                                <h5>🧍 3/4角度</h5><p>斜侧面角度</p>
+                            </div>
+                            <div class="enrich-option" data-name="walking_front" data-type="pose" onclick="window.__toggleEnrichOption(this)">
+                                <h5>🚶 行走</h5><p>自然走路</p>
+                            </div>
+                            <div class="enrich-option" data-name="sitting" data-type="pose" onclick="window.__toggleEnrichOption(this)">
+                                <h5>🪑 坐姿</h5><p>坐在凳子上</p>
+                            </div>
+                            <div class="enrich-option" data-name="hands_on_hips" data-type="pose" onclick="window.__toggleEnrichOption(this)">
+                                <h5>💪 叉腰</h5><p>自信叉腰</p>
+                            </div>
                         </div>
                     </div>
-                `;
-            }
-            html += '</div>';
-            container.innerHTML = html;
-        }
+                </div>
+                <div class="card" style="padding:16px 24px;">
+                    <button class="btn btn-primary" id="btnEnrich" onclick="window.__enrichModel()" disabled>
+                        🎯 开始追加
+                    </button>
+                </div>
+            </div>
 
-        function truncPath(p) {
-            if (!p) return '';
-            const parts = p.replace(/\\/g, '/').split('/');
-            return parts.length > 3 ? '.../' + parts.slice(-3).join('/') : p;
-        }
+            <!-- Log -->
+            <div class="card">
+                <div class="card-title">
+                    <div class="icon" style="background:rgba(251,191,36,0.12);color:var(--warning);">📋</div>
+                    模特日志
+                </div>
+                <div class="log-area" id="modelLogArea">
+                    <div class="log-line"><span class="log-info">等待操作...</span></div>
+                </div>
+            </div>
+        </div>
 
-        // ===== Log =====
-        function log(type, msg) {
-            const cls = type === 'error' ? 'log-error' : type === 'success' ? 'log-success' : 'log-info';
-            const time = new Date().toLocaleTimeString('zh-CN', { hour12: false });
-            const line = document.createElement('div');
-            line.className = 'log-line';
-            line.innerHTML = `<span class="log-time">${time}</span><span class="${cls}">${msg}</span>`;
-            logArea.appendChild(line);
-            logArea.scrollTop = logArea.scrollHeight;
-        }
+        <!-- Right Panel: Results -->
+        <div class="right-panel">
 
-        // ===== Toast =====
-        function toast(msg, type = 'success') {
-            const el = document.createElement('div');
-            el.className = `toast toast-${type}`;
-            el.textContent = msg;
-            $('#toasts').appendChild(el);
-            setTimeout(() => el.remove(), 4000);
-        }
+            <!-- Model List -->
+            <div class="card" id="modelListCard">
+                <div class="card-title">
+                    <div class="icon" style="background:rgba(124,92,252,0.12);color:var(--accent);">📋</div>
+                    模特列表
+                    <span id="modelCount" style="font-size:11px;color:var(--text-secondary);font-weight:400;margin-left:auto;"></span>
+                </div>
+                <div class="model-grid" id="modelGrid">
+                    <div class="empty-state">
+                        <div class="icon-huge">👤</div>
+                        <p>暂无模特，在左侧创建你的第一个模特</p>
+                    </div>
+                </div>
+            </div>
 
-        // ===== Health Check =====
-        async function checkHealth() {
-            try {
-                const res = await fetch(`${API_BASE}/health`);
-                if (res.ok) {
-                    $('#statusDot').style.background = 'var(--success)';
-                    $('#statusText').textContent = '已连接';
-                    return true;
-                }
-            } catch {}
-            $('#statusDot').style.background = 'var(--error)';
-            $('#statusText').textContent = '未连接';
-            return false;
-        }
+            <!-- Model Detail -->
+            <div class="card" id="modelDetailCard" style="display:none;">
+                <div class="card-title">
+                    <button class="btn-icon" style="width:28px;height:28px;min-width:28px;font-size:14px;" onclick="window.__backToModelList()">←</button>
+                    <span id="detailName">模特详情</span>
+                    <span id="detailMeta" style="font-size:11px;color:var(--text-secondary);font-weight:400;"></span>
+                    <button class="btn-icon" style="width:28px;height:28px;min-width:28px;font-size:14px;margin-left:auto;color:var(--error);" onclick="window.__deleteCurrentModel()" title="删除模特">🗑</button>
+                </div>
+                <!-- Original + info -->
+                <div style="display:flex;gap:16px;margin-bottom:20px;">
+                    <div id="detailOriginal" style="width:120px;min-width:120px;"></div>
+                    <div style="flex:1;">
+                        <div id="detailSideInfo" style="font-size:13px;display:flex;flex-direction:column;gap:6px;"></div>
+                        <div id="detailTags" style="display:flex;flex-wrap:wrap;gap:4px;margin-top:8px;"></div>
+                    </div>
+                </div>
+                <!-- Reference images -->
+                <h4 style="font-size:14px;font-weight:600;margin-bottom:14px;display:flex;align-items:center;gap:8px;">
+                    📷 参考图
+                    <span id="detailRefCount" style="font-size:11px;color:var(--text-secondary);font-weight:400;"></span>
+                </h4>
+                <div class="ref-grid" id="detailRefGrid">
+                    <div class="empty-state" style="padding:24px;grid-column:1/-1;">
+                        <p style="font-size:13px;">暂无参考图</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 
-        // ===== API Key Toggle =====
-        $('#keyToggle').addEventListener('click', () => {
-            $('#keyToggle').classList.toggle('open');
-            $('#keyBody').classList.toggle('open');
-        });
+    <!-- ==================== 设置面板 (Slide-over) ==================== -->
+    <div class="settings-backdrop" id="settingsBackdrop" onclick="window.__closeSettings()"></div>
+    <div class="settings-panel" id="settingsPanel">
+        <div class="settings-header">
+            <h2>⚙️ 设置</h2>
+            <button class="btn-icon" onclick="window.__closeSettings()">✕</button>
+        </div>
 
-        function toggleKeyVis(inputId) {
-            const inp = document.getElementById(inputId);
-            inp.type = inp.type === 'password' ? 'text' : 'password';
-        }
+        <div class="form-group">
+            <label>SiliconFlow API Key</label>
+            <div class="key-input-group">
+                <input type="password" id="sfApiKey" placeholder="sk-...">
+                <button class="btn-icon" onclick="window.__toggleKeyVis('sfApiKey')" title="显示/隐藏">👁</button>
+            </div>
+            <div class="key-status" id="sfKeyStatus"></div>
+        </div>
+        <div class="form-group">
+            <label>Evolink API Key</label>
+            <div class="key-input-group">
+                <input type="password" id="evApiKey" placeholder="sk-...">
+                <button class="btn-icon" onclick="window.__toggleKeyVis('evApiKey')" title="显示/隐藏">👁</button>
+            </div>
+            <div class="key-status" id="evKeyStatus"></div>
+        </div>
+        <button class="btn-save-key" id="btnSaveKeys" onclick="window.__saveApiKeys()" style="width:100%;">💾 保存 API Key</button>
+    </div>
 
-        async function loadApiKeyStatus() {
-            try {
-                const res = await fetch(`${API_BASE}/api/v1/config`);
-                const cfg = await res.json();
-                const providers = cfg.providers || {};
+    <!-- ==================== Lightbox ==================== -->
+    <div class="lightbox-overlay" id="lightboxOverlay">
+        <button class="lightbox-close" id="lightboxClose">✕</button>
+        <button class="lightbox-nav lightbox-prev" id="lightboxPrev">‹</button>
+        <img id="lightboxImg" src="" alt="">
+        <button class="lightbox-nav lightbox-next" id="lightboxNext">›</button>
+    </div>
 
-                // SiliconFlow
-                const sfInfo = providers.siliconflow;
-                const sfStatus = $('#sfKeyStatus');
-                if (sfInfo && sfInfo.has_api_key) {
-                    sfStatus.textContent = '✓ 已配置';
-                    sfStatus.className = 'key-status configured';
-                    $('#sfApiKey').placeholder = 'sk-****已配置 (留空则保持不变)';
-                } else {
-                    sfStatus.textContent = '✗ 未配置';
-                    sfStatus.className = 'key-status missing';
-                }
+    <!-- ==================== App Script ==================== -->
+    <script type="module" src="/static/js/app.js?v=2"></script>
 
-                // Evolink
-                const evInfo = providers.evolink;
-                const evStatus = $('#evKeyStatus');
-                if (evInfo && evInfo.has_api_key) {
-                    evStatus.textContent = '✓ 已配置';
-                    evStatus.className = 'key-status configured';
-                    $('#evApiKey').placeholder = 'sk-****已配置 (留空则保持不变)';
-                } else {
-                    evStatus.textContent = '✗ 未配置';
-                    evStatus.className = 'key-status missing';
-                }
-            } catch (e) {
-                log('error', '获取 Key 配置状态失败');
-            }
-        }
-
-        async function saveApiKeys() {
-            const sfKey = $('#sfApiKey').value.trim();
-            const evKey = $('#evApiKey').value.trim();
-
-            if (!sfKey && !evKey) {
-                toast('请至少填写一个 API Key', 'error');
-                return;
-            }
-
-            const btn = $('#btnSaveKeys');
-            btn.disabled = true;
-            btn.textContent = '保存中...';
-
-            const providers = {};
-            if (sfKey) providers.siliconflow = { api_key: sfKey };
-            if (evKey) providers.evolink = { api_key: evKey };
-
-            try {
-                const res = await fetch(`${API_BASE}/api/v1/config`, {
-                    method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ providers }),
-                });
-                const data = await res.json();
-
-                if (res.ok) {
-                    toast('API Key 已保存并持久化', 'success');
-                    log('success', 'API Key 更新成功');
-                    $('#sfApiKey').value = '';
-                    $('#evApiKey').value = '';
-                    await loadApiKeyStatus();
-                } else {
-                    toast('保存失败: ' + (data.detail || '未知错误'), 'error');
-                }
-            } catch (e) {
-                toast('请求失败: ' + e.message, 'error');
-            }
-            btn.disabled = false;
-            btn.textContent = '💾 保存 API Key';
-        }
-
-        // ===== History =====
-        async function loadHistory() {
-            try {
-                const res = await fetch(`${API_BASE}/api/v1/generation/history?limit=20`);
-                const records = await res.json();
-                const list = $('#historyList');
-                const countEl = $('#historyCount');
-
-                if (!records || records.length === 0) {
-                    list.innerHTML = '<div class="empty-state" style="padding:24px 10px;"><p style="font-size:13px;">暂无生成记录</p></div>';
-                    countEl.textContent = '';
-                    return;
-                }
-
-                countEl.textContent = records.length + ' 条';
-                let html = '';
-                for (const r of records) {
-                    const firstImg = r.images && r.images.length > 0
-                        ? '/output/' + r.dir + '/' + r.images[0]
-                        : '';
-                    const typeLabel = r.type === 'subject_extraction' ? '提取'
-                        : r.type === 'multiview' ? '多视角' : r.type;
-                    const imgCount = r.images ? r.images.length : 0;
-                    const imagesJson = JSON.stringify(r.images || []).replace(/"/g, '&quot;');
-                    html += '<div class="history-item" data-dir="' + r.dir + '" data-images="' + imagesJson + '" onclick="showHistory(this)">';
-                    if (firstImg) {
-                        html += '<img class="thumb" src="' + firstImg + '" alt="">';
-                    } else {
-                        html += '<div class="thumb" style="display:flex;align-items:center;justify-content:center;font-size:18px;">📄</div>';
-                    }
-                    html += '<div class="meta">';
-                    html += '<h5>' + typeLabel + ' · ' + r.task_id + '</h5>';
-                    html += '<p>' + r.date + ' · ' + (r.provider || '') + ' · ' + imgCount + ' 张图片</p>';
-                    html += '</div></div>';
-                }
-                list.innerHTML = html;
-            } catch (e) {
-                console.error('加载历史失败', e);
-            }
-        }
-
-        function showHistory(el) {
-            document.querySelectorAll('.history-item').forEach(i => i.classList.remove('active'));
-            el.classList.add('active');
-
-            const dir = el.dataset.dir;
-            const images = JSON.parse(el.dataset.images || '[]');
-            const detail = $('#historyDetail');
-
-            if (images.length === 0) {
-                detail.style.display = 'none';
-                return;
-            }
-
-            let html = '<div class="history-images">';
-            for (const img of images) {
-                const url = '/output/' + dir + '/' + img;
-                html += '<img src="' + url + '" alt="' + img + '" title="' + img + '" onclick="window.open(\'' + url + '\',\'_blank\')">';
-            }
-            html += '</div>';
-            detail.innerHTML = html;
-            detail.style.display = 'block';
-        }
-
-        // ===== Init =====
-        (async () => {
-            const ok = await checkHealth();
-            if (ok) {
-                loadModels();
-                loadApiKeyStatus();
-                loadHistory();
-                log('success', '后端服务已连接');
-            } else {
-                log('error', '后端服务未连接，请确认已启动');
-            }
-        })();
-    </script>
 </body>
 </html>

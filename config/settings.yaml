@@ -10,6 +10,7 @@ providers:
 default_provider: siliconflow
 subject_extraction_model: Qwen/Qwen-Image-Edit-2509
 multiview_generation_model: Qwen/Qwen-Image-Edit-2509
+model_generation_model: Kwai-Kolors/Kolors
 prompts:
   subject_extraction: Extract the main subject from this image. Remove the background
     completely. Keep only the primary {subject_type} on a clean white background.
@@ -25,7 +26,21 @@ prompts:
       textures and details as the reference. Clean white background. {extra_requirements}
     top: Top-down view of {subject_description}. Maintain exact same appearance, colors,
       textures and details as the reference. Clean white background. {extra_requirements}
+  model_generation: 'A full-body photo of a {gender} fashion model, {model_description}.
+    Standing in a natural pose, facing the camera. Clean white background, studio
+    lighting, high quality, fashion photography style. {extra_requirements}'
+  model_pose:
+    walking_front: '{model_description}, walking towards camera, natural stride, maintain
+      exact same appearance and outfit as reference. Clean white background. {extra_requirements}'
+    sitting: '{model_description}, sitting on a stool, relaxed pose, maintain exact
+      same appearance and outfit as reference. Clean white background. {extra_requirements}'
+    hands_on_hips: '{model_description}, standing with hands on hips, confident pose,
+      maintain exact same appearance and outfit as reference. Clean white background.
+      {extra_requirements}'
+    three_quarter: 'Three-quarter view of {model_description}, slight angle, maintain
+      exact same appearance and outfit as reference. Clean white background. {extra_requirements}'
 output_base_path: ./output
+models_base_path: ./output/models
 default_views:
 - front
 - left_side
@@ -34,3 +49,4 @@ default_views:
 - top
 num_inference_steps: 50
 cfg_scale: 4.0
+

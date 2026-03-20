@@ -19,7 +19,8 @@ from app.config import get_settings
 from app.providers.evolink import EvolinkProvider
 from app.providers.registry import ProviderRegistry
 from app.providers.siliconflow import SiliconFlowProvider
-from app.routers import config_router, generation
+from app.routers import config_router, generation, model_router
+from app.services.model_generator import ModelGenerator
 from app.services.multiview_generator import MultiViewGenerator
 from app.services.prompt_engine import PromptEngine
 from app.services.subject_extractor import SubjectExtractor
@@ -70,9 +71,19 @@ async def lifespan(app: FastAPI):
     extractor = SubjectExtractor(registry, storage, prompt_engine)
     multiview = MultiViewGenerator(registry, storage, prompt_engine)
 
-    # 6. 注入到路由
+    # 6. 初始化模特生成服务
+    model_gen = ModelGenerator(
+        registry=registry,
+        storage=storage,
+        prompt_engine=prompt_engine,
+        multiview=multiview,
+        models_base_path=settings.models_base_path,
+    )
+
+    # 7. 注入到路由
     generation.set_services(extractor, multiview)
     config_router.set_registry(registry)
+    model_router.set_model_generator(model_gen)
 
     logger.info("=== Easy AIGC 启动完成 ===")
 
@@ -106,6 +117,7 @@ app.add_middleware(
 # 注册路由
 app.include_router(generation.router)
 app.include_router(config_router.router)
+app.include_router(model_router.router)
 
 # 前端静态文件
 _frontend_dir = Path(__file__).resolve().parent.parent / "frontend"
@@ -116,6 +128,11 @@ if _frontend_dir.exists():
 _output_dir = Path(__file__).resolve().parent.parent / "output"
 _output_dir.mkdir(exist_ok=True)
 app.mount("/output", StaticFiles(directory=str(_output_dir)), name="output")
+
+# 模特图片目录
+_models_dir = Path(__file__).resolve().parent.parent / "output" / "models"
+_models_dir.mkdir(parents=True, exist_ok=True)
+app.mount("/models", StaticFiles(directory=str(_models_dir)), name="models")
 
 
 # ---------- 根路由 ----------

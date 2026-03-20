@@ -113,6 +113,82 @@ class PromptEngine:
         logger.debug("渲染 %s 视角 prompt: %s", view_name, rendered[:80])
         return rendered
 
+    def render_model_generation_prompt(
+        self,
+        custom_prompt: str | None = None,
+        **variables: str,
+    ) -> str:
+        """
+        渲染文生图创建模特的 Prompt
+
+        Args:
+            custom_prompt: 完全自定义 Prompt
+            **variables: 模板变量，如 gender="female", model_description="..."
+
+        Returns:
+            渲染后的 Prompt
+        """
+        if custom_prompt:
+            logger.debug("使用自定义 model_generation prompt")
+            return custom_prompt
+
+        defaults = {
+            "gender": "female",
+            "model_description": "young professional model",
+            "extra_requirements": "",
+        }
+        defaults.update(variables)
+
+        rendered = self._safe_format(
+            self._templates.model_generation, **defaults
+        )
+        logger.debug("渲染 model_generation prompt: %s", rendered[:80])
+        return rendered
+
+    def render_model_pose_prompt(
+        self,
+        pose_name: str,
+        custom_prompt: str | None = None,
+        **variables: str,
+    ) -> str:
+        """
+        渲染模特姿势/角度参考图 Prompt（图生图用）
+
+        Args:
+            pose_name: 姿势名称 (walking_front, sitting 等)
+            custom_prompt: 自定义 Prompt
+            **variables: 模板变量
+
+        Returns:
+            渲染后的 Prompt
+        """
+        if custom_prompt:
+            logger.debug("使用自定义 %s 姿势 prompt", pose_name)
+            return custom_prompt
+
+        # 先从 model_pose 模板查找，再从 multiview 模板查找，最后用通用模板
+        template = self._templates.model_pose.get(pose_name)
+        if template is None:
+            template = self._templates.multiview.get(pose_name)
+        if template is None:
+            template = (
+                "{view_direction} of {model_description}, "
+                "maintain exact same appearance and outfit as reference. "
+                "Clean white background. {extra_requirements}"
+            )
+
+        defaults = {
+            "view_direction": pose_name.replace("_", " "),
+            "model_description": "the model",
+            "subject_description": "the model",
+            "extra_requirements": "",
+        }
+        defaults.update(variables)
+
+        rendered = self._safe_format(template, **defaults)
+        logger.debug("渲染 %s 姿势 prompt: %s", pose_name, rendered[:80])
+        return rendered
+
     @staticmethod
     def _safe_format(template: str, **kwargs: str) -> str:
         """

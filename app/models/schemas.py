@@ -177,3 +177,117 @@ class ModelInfo(BaseModel):
     name: str
     capabilities: list[str] = Field(default_factory=list)
     provider: str
+
+
+# ---------- 模特生成相关模型 ----------
+
+class ReferenceType(str, Enum):
+    """参考图类型"""
+    VIEW = "view"      # 视角参考图
+    POSE = "pose"      # 姿势参考图
+
+
+class CreateModelRequest(BaseModel):
+    """文生图创建模特请求"""
+    name: str = Field(..., description="模特名称")
+    description: str = Field("", description="模特外观描述（用于文生图 Prompt）")
+    tags: list[str] = Field(default_factory=list, description="标签，如 ['时尚', '都市']")
+    gender: str = Field("female", description="性别: male/female")
+    style: str = Field("时尚写真", description="风格描述")
+
+    # 生成配置
+    custom_prompt: str | None = Field(None, description="完全自定义文生图 Prompt（覆盖模板）")
+    prompt_variables: dict[str, str] | None = Field(
+        None,
+        description="模板变量注入",
+    )
+    provider: str | None = Field(None, description="指定 Provider")
+    model: str | None = Field(None, description="指定文生图模型")
+    image_size: str | None = Field(None, description="输出图片尺寸")
+
+    # 视角配置
+    views: list[str] | None = Field(
+        None,
+        description="创建时自动生成的视角列表，为空用默认",
+    )
+    multiview_provider: str | None = Field(None, description="多视角阶段 Provider")
+    multiview_model: str | None = Field(None, description="多视角阶段模型")
+
+
+class CreateModelFromImageRequest(BaseModel):
+    """从已有图片创建模特请求"""
+    name: str = Field(..., description="模特名称")
+    description: str = Field("", description="模特描述")
+    tags: list[str] = Field(default_factory=list, description="标签")
+    gender: str = Field("female", description="性别")
+    style: str = Field("时尚写真", description="风格")
+
+    # 多视角配置
+    views: list[str] | None = Field(None, description="自动生成的视角列表")
+    provider: str | None = Field(None, description="多视角 Provider")
+    model: str | None = Field(None, description="多视角模型")
+    image_size: str | None = Field(None, description="输出图片尺寸")
+
+
+class EnrichReferenceItem(BaseModel):
+    """单条追加参考图配置"""
+    name: str = Field(..., description="参考图名称，如 'walking_front', 'three_quarter'")
+    type: ReferenceType = Field(ReferenceType.POSE, description="类型: view 或 pose")
+    custom_prompt: str | None = Field(
+        None,
+        description="该参考图的自定义 Prompt",
+    )
+
+
+class EnrichModelRequest(BaseModel):
+    """图生图追加参考图请求（完善模特）"""
+    references: list[EnrichReferenceItem] = Field(
+        ...,
+        description="要追加的参考图列表",
+    )
+    prompt_variables: dict[str, str] | None = Field(
+        None,
+        description="全局模板变量注入",
+    )
+    provider: str | None = Field(None, description="指定 Provider")
+    model: str | None = Field(None, description="指定图生图模型")
+    image_size: str | None = Field(None, description="输出图片尺寸")
+
+
+class ModelReference(BaseModel):
+    """模特卡中的单张参考图信息"""
+    name: str
+    type: ReferenceType
+    image_path: str
+    prompt_used: str | None = None
+    created_at: str | None = None
+
+
+class ModelCardResponse(BaseModel):
+    """模特卡完整响应"""
+    model_id: str
+    name: str
+    description: str = ""
+    tags: list[str] = Field(default_factory=list)
+    gender: str = ""
+    style: str = ""
+    status: TaskStatus = TaskStatus.COMPLETED
+    original_image_path: str | None = None
+    references: list[ModelReference] = Field(default_factory=list)
+    created_at: str | None = None
+    updated_at: str | None = None
+    original_prompt: str | None = None
+    error: str | None = None
+
+
+class ModelListItem(BaseModel):
+    """模特列表精简项"""
+    model_id: str
+    name: str
+    thumbnail: str | None = None
+    tags: list[str] = Field(default_factory=list)
+    gender: str = ""
+    style: str = ""
+    reference_count: int = 0
+    created_at: str | None = None
+    updated_at: str | None = None

@@ -1,0 +1,20 @@
+/* ===== Easy AIGC — Design Tokens ===== */
+:root {
+    --bg-primary: #0f0f14;
+    --bg-secondary: #1a1a24;
+    --bg-card: #1e1e2e;
+    --bg-input: #252536;
+    --border: #2e2e42;
+    --border-hover: #4a4a6a;
+    --text-primary: #e8e8f0;
+    --text-secondary: #9898b0;
+    --text-muted: #686880;
+    --accent: #7c5cfc;
+    --accent-hover: #9078ff;
+    --accent-glow: rgba(124, 92, 252, 0.25);
+    --success: #34d399;
+    --error: #f87171;
+    --warning: #fbbf24;
+    --radius: 12px;
+    --radius-sm: 8px;
+}

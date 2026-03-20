@@ -63,6 +63,38 @@ class PromptTemplates(BaseModel):
         ),
     })
 
+    # 模特生成 — 文生图 Prompt 模板
+    model_generation: str = (
+        "A full-body photo of a {gender} fashion model, {model_description}. "
+        "Standing in a natural pose, facing the camera. "
+        "Clean white background, studio lighting, high quality, "
+        "fashion photography style. {extra_requirements}"
+    )
+
+    # 模特姿势参考图 — 图生图 Prompt 模板
+    model_pose: dict[str, str] = Field(default_factory=lambda: {
+        "walking_front": (
+            "{model_description}, walking towards camera, natural stride, "
+            "maintain exact same appearance and outfit as reference. "
+            "Clean white background. {extra_requirements}"
+        ),
+        "sitting": (
+            "{model_description}, sitting on a stool, relaxed pose, "
+            "maintain exact same appearance and outfit as reference. "
+            "Clean white background. {extra_requirements}"
+        ),
+        "hands_on_hips": (
+            "{model_description}, standing with hands on hips, confident pose, "
+            "maintain exact same appearance and outfit as reference. "
+            "Clean white background. {extra_requirements}"
+        ),
+        "three_quarter": (
+            "Three-quarter view of {model_description}, slight angle, "
+            "maintain exact same appearance and outfit as reference. "
+            "Clean white background. {extra_requirements}"
+        ),
+    })
+
 
 # ---------- 主配置 ----------
 
@@ -115,12 +147,14 @@ class Settings(BaseSettings):
     # 模型配置
     subject_extraction_model: str = "Qwen/Qwen-Image-Edit-2509"
     multiview_generation_model: str = "Qwen/Qwen-Image-Edit-2509"
+    model_generation_model: str = "Kwai-Kolors/Kolors"  # 文生图创建模特
 
     # Prompt 模板
     prompts: PromptTemplates = Field(default_factory=PromptTemplates)
 
     # 存储 & 生成参数
     output_base_path: str = "./output"
+    models_base_path: str = "./output/models"  # 模特持久化目录
     default_views: list[str] = Field(
         default_factory=lambda: ["front", "left_side", "right_side", "back", "top"]
     )
