@@ -3,6 +3,7 @@ import { API } from './api.js';
 import { $, $$, toast, log, initLightbox, openLightbox } from './components.js';
 import { initGeneration, loadHistory } from './generation.js';
 import { initModels, loadModelList } from './models.js';
+import { initStoryboard } from './storyboard.js';
 
 // ===== Expose lightbox to window for inline onclick =====
 window.__lightbox = openLightbox;
@@ -119,6 +120,7 @@ async function checkHealth() {
     initLightbox();
     initGeneration();
     initModels();
+    initStoryboard();
 
     const ok = await checkHealth();
     if (ok) {

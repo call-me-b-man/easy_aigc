@@ -95,6 +95,34 @@ class PromptTemplates(BaseModel):
         ),
     })
 
+    # 分镜脚本生成 — VLM System Prompt 模板
+    storyboard_system: str = (
+        "你是一个专业的分镜脚本设计师。\n"
+        "你会收到一组图片，每张图片带有索引编号 (0-based)。\n"
+        "你的任务是：\n"
+        "1. 先仔细观察每张图片，识别其中的场景、人物、物体、色彩、情绪等细节。\n"
+        "2. 基于这些图片设计一个连贯的剧本故事。\n"
+        "3. 为每张图片设计对应的分镜，包含运镜、对白、时长等。\n\n"
+        "你必须以以下 JSON 格式返回，不要返回任何其他内容：\n"
+        '{{\n'
+        '  "script_title": "剧本标题",\n'
+        '  "script_summary": "剧本概要描述",\n'
+        '  "image_descriptions": ["图0的识别描述", "图1的识别描述", ...],\n'
+        '  "scenes": [\n'
+        '    {{\n'
+        '      "scene_number": 1,\n'
+        '      "image_index": 0,\n'
+        '      "scene_description": "画面描述",\n'
+        '      "camera_movement": "运镜设计",\n'
+        '      "dialogue": "对白或旁白",\n'
+        '      "duration": "预估时长如 3s",\n'
+        '      "notes": "导演备注"\n'
+        '    }}\n'
+        '  ]\n'
+        '}}\n'
+        "{extra_requirements}"
+    )
+
 
 # ---------- 主配置 ----------
 
@@ -148,6 +176,7 @@ class Settings(BaseSettings):
     subject_extraction_model: str = "Qwen/Qwen-Image-Edit-2509"
     multiview_generation_model: str = "Qwen/Qwen-Image-Edit-2509"
     model_generation_model: str = "Kwai-Kolors/Kolors"  # 文生图创建模特
+    storyboard_model: str = "Qwen/Qwen2.5-VL-72B-Instruct"  # 分镜脚本 VLM 模型
 
     # Prompt 模板
     prompts: PromptTemplates = Field(default_factory=PromptTemplates)

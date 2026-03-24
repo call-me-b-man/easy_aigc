@@ -22,6 +22,50 @@ class ProviderResult:
     raw_response: dict[str, Any] = field(default_factory=dict)
 
 
+@dataclass
+class ChatResult:
+    """统一的 LLM/VLM 聊天结果"""
+    content: str = ""
+    model_used: str = ""
+    provider_name: str = ""
+    usage: dict[str, int] = field(default_factory=dict)
+    raw_response: dict[str, Any] = field(default_factory=dict)
+
+
+class ChatProvider(ABC):
+    """
+    LLM/VLM 聊天 API 的抽象基类
+
+    支持多模态输入 (文本 + 图片)，用于识图、剧本生成等场景。
+    messages 格式兼容 OpenAI Chat Completions API。
+    """
+
+    name: str = ""
+
+    @abstractmethod
+    async def chat_completion(
+        self,
+        messages: list[dict[str, Any]],
+        model: str | None = None,
+        temperature: float = 0.7,
+        max_tokens: int = 4096,
+        **kwargs: Any,
+    ) -> ChatResult:
+        """
+        调用 LLM/VLM 聊天接口
+
+        Args:
+            messages: OpenAI 兼容的 messages 数组，支持多模态 content
+            model: 模型标识
+            temperature: 采样温度
+            max_tokens: 最大生成 token 数
+            **kwargs: Provider 特有参数
+
+        Returns:
+            ChatResult 统一结果
+        """
+
+
 class ImageProvider(ABC):
     """
     图片 API 提供商的抽象基类

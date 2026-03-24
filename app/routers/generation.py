@@ -9,11 +9,13 @@ import logging
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
+from typing import Optional
 
 from app.models.schemas import (
     ExtractSubjectResponse,
     MultiViewResponse,
     PipelineResponse,
+    StoryboardResponse,
     TaskStatus,
     ViewResult,
 )
@@ -26,12 +28,14 @@ router = APIRouter(prefix="/api/v1/generation", tags=["Generation"])
 
 _extractor = None
 _multiview = None
+_storyboard = None
 
 
-def set_services(extractor, multiview):
-    global _extractor, _multiview
+def set_services(extractor, multiview, storyboard=None):
+    global _extractor, _multiview, _storyboard
     _extractor = extractor
     _multiview = multiview
+    _storyboard = storyboard
 
 
 def _get_extractor():
@@ -44,6 +48,12 @@ def _get_multiview():
     if _multiview is None:
         raise HTTPException(500, "MultiViewGenerator 未初始化")
     return _multiview
+
+
+def _get_storyboard():
+    if _storyboard is None:
+        raise HTTPException(500, "StoryboardGenerator 未初始化")
+    return _storyboard
 
 
 # ---------- 主体提取 ----------
@@ -320,3 +330,68 @@ async def list_history(limit: int = 20):
 
     records.sort(key=lambda r: r.get("mtime", 0), reverse=True)
     return records[:limit]
+
+
+# ---------- 分镜脚本生成 ----------
+
+@router.post("/storyboard", response_model=StoryboardResponse)
+async def generate_storyboard(
+    images: list[UploadFile] = File(
+        default=[],
+        description="上传图片文件（可多张）",
+    ),
+    image_paths: Annotated[str | None, Form()] = None,
+    custom_prompt: Annotated[str | None, Form()] = None,
+    provider: Annotated[str | None, Form()] = None,
+    model: Annotated[str | None, Form()] = None,
+    temperature: Annotated[float, Form()] = 0.7,
+    max_tokens: Annotated[int, Form()] = 4096,
+):
+    """
+    分镜脚本生成接口
+
+    支持两种输入方式（可混用）：
+    - **images**: 直接上传图片文件 (多张)
+    - **image_paths**: JSON 数组，项目内部路径列表，如 ["output/2026-03-23/.../subject.png"]
+      用于快捷导入其他环节生成的图片。
+
+    先用 VLM 识图分析每张图片，再由大模型生成连贯的剧本和结构化分镜。
+    """
+    storyboard_gen = _get_storyboard()
+
+    # 收集所有图片源
+    image_data_list: list[str] = []
+
+    # 1. 解析 image_paths (JSON 数组)
+    if image_paths:
+        try:
+            parsed_paths = json.loads(image_paths)
+            if isinstance(parsed_paths, list):
+                image_data_list.extend(parsed_paths)
+            else:
+                raise HTTPException(400, "image_paths 必须是 JSON 数组")
+        except json.JSONDecodeError:
+            raise HTTPException(400, "image_paths 必须是有效的 JSON 数组")
+
+    # 2. 处理上传文件 → 将内容转为 base64 data URI
+    import base64, mimetypes
+    for upload in images:
+        content = await upload.read()
+        if not content:
+            continue
+        mime = mimetypes.guess_type(upload.filename or "img.png")[0] or "image/png"
+        b64 = base64.b64encode(content).decode("utf-8")
+        image_data_list.append(f"data:{mime};base64,{b64}")
+
+    if not image_data_list:
+        raise HTTPException(400, "请至少提供一张图片 (上传文件或内部路径)")
+
+    result = await storyboard_gen.generate(
+        image_data_list=image_data_list,
+        custom_prompt=custom_prompt,
+        provider_name=provider,
+        model=model,
+        temperature=temperature,
+        max_tokens=max_tokens,
+    )
+    return result

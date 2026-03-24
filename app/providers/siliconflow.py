@@ -1,7 +1,9 @@
 """
-SiliconFlow Provider — 硅基流动图片生成 API 实现
+SiliconFlow Provider — 硅基流动图片生成 & LLM/VLM API 实现
 
-API 端点: POST https://api.siliconflow.cn/v1/images/generations
+API 端点:
+  - 图片生成: POST https://api.siliconflow.cn/v1/images/generations
+  - 聊天补全: POST https://api.siliconflow.cn/v1/chat/completions
 特点: 同步返回图片 URL（有效期 1 小时，需立即下载）
 """
 
@@ -14,7 +16,7 @@ import httpx
 
 from app.config import ProviderConfig, get_settings
 from app.models.schemas import ModelInfo
-from app.providers.base import ImageProvider, ProviderResult
+from app.providers.base import ChatProvider, ChatResult, ImageProvider, ProviderResult
 
 logger = logging.getLogger(__name__)
 
@@ -24,8 +26,8 @@ RETRY_BACKOFF = 2.0  # 指数退避基数(秒)
 REQUEST_TIMEOUT = 120.0  # 请求超时(秒)
 
 
-class SiliconFlowProvider(ImageProvider):
-    """SiliconFlow (硅基流动) 图片生成 Provider"""
+class SiliconFlowProvider(ImageProvider, ChatProvider):
+    """SiliconFlow (硅基流动) 图片生成 & LLM/VLM Provider"""
 
     name = "siliconflow"
 
@@ -47,6 +49,19 @@ class SiliconFlowProvider(ImageProvider):
             id="Kwai-Kolors/Kolors",
             name="Kolors",
             capabilities=["text2img"],
+            provider="siliconflow",
+        ),
+        # VLM / LLM 模型
+        ModelInfo(
+            id="Qwen/Qwen2.5-VL-72B-Instruct",
+            name="Qwen2.5 VL 72B",
+            capabilities=["vlm", "chat", "vision"],
+            provider="siliconflow",
+        ),
+        ModelInfo(
+            id="Qwen/Qwen3-8B",
+            name="Qwen3 8B",
+            capabilities=["chat", "text"],
             provider="siliconflow",
         ),
     ]
@@ -197,3 +212,108 @@ class SiliconFlowProvider(ImageProvider):
                 return response.status_code == 200
         except Exception:
             return False
+
+    # ---------- ChatProvider 实现 ----------
+
+    async def chat_completion(
+        self,
+        messages: list[dict[str, Any]],
+        model: str | None = None,
+        temperature: float = 0.7,
+        max_tokens: int = 4096,
+        **kwargs: Any,
+    ) -> ChatResult:
+        """
+        调用 SiliconFlow Chat Completions API
+
+        支持多模态 messages (文本 + 图片)，兼容 OpenAI Vision 格式。
+        """
+        actual_model = model or "Qwen/Qwen2.5-VL-72B-Instruct"
+
+        payload: dict[str, Any] = {
+            "model": actual_model,
+            "messages": messages,
+            "temperature": temperature,
+            "max_tokens": max_tokens,
+        }
+
+        # 额外参数
+        for key in ("top_p", "stop", "stream"):
+            if key in kwargs:
+                payload[key] = kwargs[key]
+
+        last_error: Exception | None = None
+        for attempt in range(MAX_RETRIES):
+            try:
+                async with httpx.AsyncClient(
+                    timeout=REQUEST_TIMEOUT,
+                ) as client:
+                    response = await client.post(
+                        f"{self._base_url}/chat/completions",
+                        headers=self._headers,
+                        json=payload,
+                    )
+                    response.raise_for_status()
+                    data = response.json()
+
+                    # 解析响应
+                    choices = data.get("choices", [])
+                    content = ""
+                    if choices:
+                        message = choices[0].get("message", {})
+                        content = message.get("content", "")
+
+                    usage = data.get("usage", {})
+
+                    result = ChatResult(
+                        content=content,
+                        model_used=actual_model,
+                        provider_name=self.name,
+                        usage={
+                            "prompt_tokens": usage.get("prompt_tokens", 0),
+                            "completion_tokens": usage.get("completion_tokens", 0),
+                            "total_tokens": usage.get("total_tokens", 0),
+                        },
+                        raw_response=data,
+                    )
+                    logger.info(
+                        "SiliconFlow Chat 成功: model=%s, tokens=%s",
+                        actual_model,
+                        result.usage.get("total_tokens"),
+                    )
+                    return result
+
+            except httpx.HTTPStatusError as e:
+                last_error = e
+                error_body = e.response.text[:500]
+                logger.warning(
+                    "SiliconFlow Chat API 错误 (尝试 %d/%d): HTTP %s\n%s",
+                    attempt + 1,
+                    MAX_RETRIES,
+                    e.response.status_code,
+                    error_body,
+                )
+            except httpx.RequestError as e:
+                last_error = e
+                logger.warning(
+                    "SiliconFlow Chat 请求错误 (尝试 %d/%d): %s",
+                    attempt + 1,
+                    MAX_RETRIES,
+                    str(e),
+                )
+
+            # 指数退避
+            if attempt < MAX_RETRIES - 1:
+                import asyncio
+                wait = RETRY_BACKOFF ** (attempt + 1)
+                logger.info("等待 %.1f 秒后重试...", wait)
+                await asyncio.sleep(wait)
+
+        if isinstance(last_error, httpx.HTTPStatusError):
+            detail = last_error.response.text[:300]
+            raise RuntimeError(
+                f"SiliconFlow Chat API 返回 HTTP {last_error.response.status_code}: {detail}"
+            )
+        raise RuntimeError(
+            f"SiliconFlow Chat API 调用失败 (已重试 {MAX_RETRIES} 次): {last_error}"
+        )

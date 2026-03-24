@@ -25,6 +25,9 @@
             <button class="tab-btn" data-tab="models" onclick="window.__switchTab('models')">
                 👤 模特库
             </button>
+            <button class="tab-btn" data-tab="storyboard" onclick="window.__switchTab('storyboard')">
+                🎬 剧本分镜
+            </button>
         </nav>
         <button class="btn-settings" onclick="window.__openSettings()" title="设置">⚙️</button>
         <div class="status">
@@ -392,6 +395,85 @@
                 <div class="ref-grid" id="detailRefGrid">
                     <div class="empty-state" style="padding:24px;grid-column:1/-1;">
                         <p style="font-size:13px;">暂无参考图</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== TAB: 剧本分镜 ==================== -->
+    <div class="container tab-page" id="tab-storyboard">
+        <!-- Left Panel -->
+        <div class="left-panel">
+            <!-- Source Images -->
+            <div class="card">
+                <div class="card-title">
+                    <div class="icon" style="background:var(--accent-glow);color:var(--accent);">🖼️</div>
+                    输入图片 (故事板素材)
+                </div>
+                <div class="upload-area" id="sbUploadArea" style="margin-bottom:12px;">
+                    <div id="sbUploadPlaceholder">
+                        <div class="icon-large">📁</div>
+                        <p>拖拽多张图片到此处 或 <strong style="color:var(--accent);">点击选择</strong></p>
+                    </div>
+                    <input type="file" id="sbFileInput" accept="image/*" multiple>
+                </div>
+                
+                <p style="font-size:12px;color:var(--text-secondary);margin-bottom:8px;">
+                    💡 提示：可以在“图片生成”页面的历史记录处，将生成的图片快速导入。
+                </p>
+                
+                <div id="sbSelectedImages" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;min-height:80px;background:var(--bg-input);border-radius:var(--radius-sm);padding:8px;">
+                    <div class="empty-state" style="width:100%;padding:16px;">尚未添加任何图片</div>
+                </div>
+            </div>
+
+            <!-- Parameters -->
+            <div class="card">
+                <div class="card-title">
+                    <div class="icon" style="background:rgba(52,211,153,0.12);color:var(--success);">⚙️</div>
+                    剧本设定
+                </div>
+                <div class="form-group">
+                    <label>附加文本提示词 (可选)</label>
+                    <textarea id="sbCustomPrompt" rows="3" placeholder="例如：按照悬疑风格生成，重点描写主角的表情变化..."></textarea>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Provider</label>
+                        <select id="sbProvider">
+                            <option value="">默认 (SiliconFlow)</option>
+                            <option value="siliconflow">SiliconFlow</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>大模型</label>
+                        <select id="sbModel">
+                            <option value="">默认 (Qwen2.5-VL-72B)</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Actions -->
+            <div class="card" style="padding:16px 24px;">
+                <button class="btn btn-primary" id="btnGenStoryboard" onclick="window.__generateStoryboard()" disabled>
+                    🎬 开始生成剧本分镜
+                </button>
+            </div>
+        </div>
+
+        <!-- Right Panel -->
+        <div class="right-panel">
+            <div class="card" id="sbResultWrap">
+                <div class="card-title">
+                    <div class="icon" style="background:rgba(251,191,36,0.12);color:var(--warning);">📜</div>
+                    生成结果
+                </div>
+                <div id="sbResultContent">
+                    <div class="empty-state" style="padding:60px 20px;">
+                        <div class="icon-huge">🎬</div>
+                        <p>添加图片并点击生成，在此处预览最终剧本和分镜效果。</p>
                     </div>
                 </div>
             </div>

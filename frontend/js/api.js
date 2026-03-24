@@ -39,6 +39,7 @@ export const API = {
     extractSubject: (fd) => request('POST', '/api/v1/generation/extract-subject', fd, true),
     pipeline:       (fd) => request('POST', '/api/v1/generation/pipeline', fd, true),
     history:        (limit = 20) => request('GET', `/api/v1/generation/history?limit=${limit}`),
+    generateStoryboard: (fd) => request('POST', '/api/v1/generation/storyboard', fd, true),
 
     // --- Models ---
     listModels:          (limit = 50, offset = 0) => request('GET', `/api/v1/models?limit=${limit}&offset=${offset}`),

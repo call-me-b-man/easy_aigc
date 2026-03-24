@@ -314,9 +314,25 @@ window.__showHistory = function(el) {
     let html = '<div class="history-images">';
     images.forEach((img, i) => {
         const url = '/output/' + dir + '/' + img;
-        html += `<img src="${url}" alt="${img}" title="${img}" onclick="window.__lightbox(${JSON.stringify(urls)},${i})">`;
+        const relativePath = 'output/' + dir + '/' + img;
+        html += `
+        <div style="position:relative; display:inline-block; margin:4px;">
+            <img src="${url}" alt="${img}" title="${img}" style="max-width:100px; height:auto; cursor:pointer;" onclick="window.__lightbox(${JSON.stringify(urls)},${i})">
+            <button class="btn-icon" style="position:absolute; top:4px; right:4px; background:rgba(0,0,0,0.6); color:white; width:20px; height:20px; font-size:10px;" title="加入分镜素材" onclick="window.__addSbImageFromPath('${relativePath}')">+</button>
+        </div>`;
     });
     html += '</div>';
+    
+    // Add "All to storyboard" button
+    const pathArrayStr = JSON.stringify(images.map(img => 'output/' + dir + '/' + img)).replace(/"/g, '&quot;');
+    html += `
+    <div style="margin-top:12px; text-align:right;">
+        <button class="btn btn-secondary" style="font-size:11px; padding:4px 8px;" onclick="window.__addMultipleSbImagesFromPath(JSON.parse('${pathArrayStr}'))">
+            ➕ 全部加入剧本分镜素材
+        </button>
+    </div>
+    `;
+
     detail.innerHTML = html;
     detail.style.display = 'block';
 };

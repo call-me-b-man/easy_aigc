@@ -291,3 +291,56 @@ class ModelListItem(BaseModel):
     reference_count: int = 0
     created_at: str | None = None
     updated_at: str | None = None
+
+
+# ---------- 剧本 & 分镜相关模型 ----------
+
+class StoryboardRequest(BaseModel):
+    """剧本/分镜生成请求"""
+    image_paths: list[str] | None = Field(
+        None,
+        description=(
+            "图片路径列表 (支持项目内部相对路径如 'output/2026-03-23/xxx/subject.png'，"
+            "或 data:image/... 格式的 base64)。"
+            "上传文件时此字段可不传，由 UploadFile 提供。"
+        ),
+    )
+    custom_prompt: str | None = Field(
+        None,
+        description="用户附加的故事/分镜指导提示词 (与系统模板合并)",
+    )
+    provider: str | None = Field(None, description="指定 Provider (默认 siliconflow)")
+    model: str | None = Field(
+        None,
+        description="指定 VLM 模型 (默认 Qwen/Qwen2.5-VL-72B-Instruct)",
+    )
+    temperature: float = Field(0.7, description="生成温度")
+    max_tokens: int = Field(4096, description="最大生成 token 数")
+
+
+class StoryboardScene(BaseModel):
+    """单个分镜场景"""
+    scene_number: int = Field(..., description="场景编号")
+    image_index: int = Field(..., description="对应输入图片的索引 (0-based)")
+    scene_description: str = Field("", description="画面描述 (基于识图结果)")
+    camera_movement: str = Field("", description="运镜设计")
+    dialogue: str = Field("", description="对白/旁白")
+    duration: str = Field("", description="预估时长")
+    notes: str = Field("", description="导演备注")
+
+
+class StoryboardResponse(BaseModel):
+    """剧本/分镜生成响应"""
+    task_id: str
+    status: TaskStatus
+    script_title: str = ""
+    script_summary: str = Field("", description="剧本概要")
+    scenes: list[StoryboardScene] = Field(default_factory=list)
+    image_descriptions: list[str] = Field(
+        default_factory=list,
+        description="每张输入图片的识图描述 (按索引顺序)",
+    )
+    model_used: str | None = None
+    provider_used: str | None = None
+    error: str | None = None
+

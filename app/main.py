@@ -23,6 +23,7 @@ from app.routers import config_router, generation, model_router
 from app.services.model_generator import ModelGenerator
 from app.services.multiview_generator import MultiViewGenerator
 from app.services.prompt_engine import PromptEngine
+from app.services.storyboard_generator import StoryboardGenerator
 from app.services.subject_extractor import SubjectExtractor
 from app.utils.storage import StorageManager
 
@@ -80,8 +81,15 @@ async def lifespan(app: FastAPI):
         models_base_path=settings.models_base_path,
     )
 
-    # 7. 注入到路由
-    generation.set_services(extractor, multiview)
+    # 7. 初始化分镜脚本生成服务
+    storyboard_gen = StoryboardGenerator(
+        registry=registry,
+        storage=storage,
+        prompt_engine=prompt_engine,
+    )
+
+    # 8. 注入到路由
+    generation.set_services(extractor, multiview, storyboard_gen)
     config_router.set_registry(registry)
     model_router.set_model_generator(model_gen)
 
